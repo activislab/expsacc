@@ -1,300 +1,335 @@
-
-git_path = '/home/kaneda/Documents/GitHub/expsacc/PSA_FBE';
+git_path = 'Insert_git_folder_location_here';
 addpath(genpath(git_path));
 
-pc_path = '/home/kaneda/Documents/Projects/PSA_FBE';
+pc_path = 'Insert_future_files_location_here';
 addpath(genpath(pc_path));
 
-% Ask subject number
-answer = inputdlg({'Numero voluntario'}, '', [1 25]);
+% Ask for the participant number
+answer = inputdlg({'Participant number'}, '', [1 25]);
 sub.id = answer{1}; sub.id_num = str2double(answer{1});
 
-
-%% INFORMAÇÕES SOBRE O TECLADO
-KbName('UnifyKeyNames');
-info.escapeKey = KbName('ESCAPE');
-info.s         = KbName('S');
-info.n         = KbName('N');
-info.space     = KbName('space');
 %% Screen setup
 Screen('Preference', 'SyncTestSettings', 0.01, 50, 0.25);
 Screen('Preference', 'SuppressAllWarnings', 1);
 Screen('Preference', 'Verbosity', 0);
 Screen('Preference', 'SkipSyncTests', 1);
 
-% Seed the random number generator. Here we use an older way to be
-% compatible with older systems.
+% Seed the random number generator.
+% This method ensures a different random sequence each time the script runs
+% while remaining compatible with older MATLAB versions.
 rng('shuffle')
 
-screens = Screen('Screens');% Get the screen numbers.
-info.scr_num = min(screens);% draw to the externalscreen.
+% Get the available screen numbers.
+screens = Screen('Screens');
 
-% Define black and white (white== 1 and black, 0).
+% Use the external screen for stimulus presentation.
+info.scr_num = min(screens);
+
+% Define black, white, and gray color indices.
 info.white_idx = WhiteIndex(info.scr_num);
 info.black_idx = BlackIndex(info.scr_num);
 info.gray_idx = info.white_idx/2;
 
-% Open an screen window
-[win, info.scr_rect] = PsychImaging('OpenWindow', info.scr_num, info.gray_idx, [], 32, 2, [], []); % RODA EM TELA TODA
+% Open a fullscreen Psychtoolbox window.
+[win, info.scr_rect] = PsychImaging('OpenWindow', info.scr_num, info.gray_idx, [], 32, 2, [], []);
 
-% Inter-flip interval
+% Get the screen inter-frame interval.
 info.scr_ifi = Screen('GetFlipInterval', win);
 
-sca; clc;
+sca;
+clc;
 
+% Total number of trials in one session (including training trials).
 info.ntrials = 840;
 
-%% Get the size of the screen window in pixels
+%% Get the screen dimensions
 
+% Physical screen size (cm).
 [scr_xsize_mm, scr_ysize_mm] = Screen('DisplaySize', info.scr_num);
 info.scr_xsize_cm = scr_xsize_mm/10;
 info.scr_ysize_cm = scr_ysize_mm/10;
-% Screen size in pixels
-%or, by:[scrX,scrY] = Screen('WindowSize',info.scr_num); % in  pixels
+
+% Screen resolution (pixels).
 info.scr_xsize = info.scr_rect(3);
 info.scr_ysize = info.scr_rect(4);
 
-% Centre coordinate of the window
-[info.scr_xcenter, info.scr_ycenter] = RectCenter(info.scr_rect); % in pixels
-info.scr_rrate = round(1/info.scr_ifi);     % Refresh rate
-info.scr_dist_cm = 57;          % Viewing distance from screen (cm)
+% Screen center coordinates (pixels).
+[info.scr_xcenter, info.scr_ycenter] = RectCenter(info.scr_rect);
 
-% parameters for fixation period before every trial onset.
-info.fix_dur_sec = 0.5;         % Duration of fixation at ROI to start trial in secs
-info.roi_fix_dva = 2;           % size of fixation window ROI
+% Monitor refresh rate (Hz).
+info.scr_rrate = round(1/info.scr_ifi);
+
+% Viewing distance (cm).
+info.scr_dist_cm = 57;
+
+% Parameters for the fixation period before each trial.
+info.fix_dur_sec = 0.5;         % Required fixation duration (s).
+info.roi_fix_dva = 2;           % Radius of the fixation ROI (2 dva; 4 dva diameter).
 info.roi_fix_pix = dva2pix(info.scr_dist_cm,info.scr_xsize_cm,info.scr_xsize,info.roi_fix_dva);
-%% Gabor INFOS
 
-gabor.rad = 1.1; %0.8;%1.4; %(radius in dva)
+%% Gabor parameters
+
+gabor.rad = 1.1; % Radius (dva).
 gabor.radPix = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, gabor.rad));
 
-gabor.orientation = [0 90]; % all possibilities: 1:cw; 2:ccw
+% Possible Gabor orientations.
+gabor.orientation = [0 90];
 
-gabor.contrast = 1; %0.8;
+% Gabor properties.
+gabor.contrast = 1;
 gabor.aspectRatio = 1.0;
 gabor.phase = 0;
 
-% Spatial Frequency (Cycles Per Pixel)
-% One Cycle = Grey-Black-Grey-White-Grey i.e. One Black and One White Lobe
-gabor.numCycles = 5.5;%6;%3 % para computar 'cycles/pixels'
+% Spatial frequency (cycles per pixel).
+% One cycle = Gray → Black → Gray → White → Gray.
+gabor.numCycles = 5.5;
 gabor.DimPix = info.scr_rect(4)/2;
-gabor.freq = gabor.numCycles/gabor.DimPix;%freq_pix;
+gabor.freq = gabor.numCycles/gabor.DimPix;
 
-%% infos Mask (white noise mask) do script da nina hanning
+%% White noise mask parameters
 
-mask.rad       = gabor.radPix;%30;               % item radius
-mask.pixpc     = 7.27;%10;               % gabor frequency (in pixels per cycle; e.g. 10 for 1 cicle per 10 pixel)
-mask.sigma_period      = 0.9;
-mask.sigma             = mask.pixpc*mask.sigma_period;
-mask.noisePixSize      = mask.rad/5; %%%% GOOD PROXY? %%% was 5 before
+mask.rad       = gabor.radPix;      % Mask radius.
+mask.pixpc     = 7.27;              % Pixels per cycle.
+mask.sigma_period = 0.9;
+mask.sigma        = mask.pixpc * mask.sigma_period;
+mask.noisePixSize = mask.rad / 5;
 
-%% Posicoes dos Gabors
-info.EccDVA = 8; % target eccentricity
+%% Gabor positions
+
+info.EccDVA = 8; % Target eccentricity (dva).
 info.Ecc = round(dva2pix(info.scr_dist_cm,info.scr_xsize_cm,info.scr_xsize,info.EccDVA));
 
-info.stimDim = gabor.radPix*2;
+info.stimDim = gabor.radPix * 2;
 
 rectt = [0 0 info.stimDim info.stimDim];
+
+% Horizontal positions of the left and right Gabors.
 coordL_gabor = info.scr_xcenter - info.Ecc;
 coordR_gabor = info.scr_xcenter + info.Ecc;
 
-info.coordL = CenterRectOnPoint(rectt,coordL_gabor,info.scr_ycenter)';   % posição gabor esquerda
-info.coordR = CenterRectOnPoint(rectt,coordR_gabor,info.scr_ycenter)';   % posição gabor direita
+% Screen coordinates for the left and right Gabor stimuli.
+info.coordL = CenterRectOnPoint(rectt,coordL_gabor,info.scr_ycenter)';   % Left Gabor position
+info.coordR = CenterRectOnPoint(rectt,coordR_gabor,info.scr_ycenter)';   % Right Gabor position
 
+%% Fixation dot parameters
 
-%% Infos Fixation Dot
-info.dot_size_dva = 0.3;        % fixation Dot diameter
+info.dot_size_dva = 0.3;        % Fixation dot diameter (dva).
 info.dot_size_pix = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, info.dot_size_dva));
 
-%% Infos Saccade_Cue
-info.cue_width_dva = 0.15; % saccade cue width in dva
-info.cue_length_dva = 0.7; % saccade cue length in dva
+%% Saccade cue parameters
 
-info.cue_width_px = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, info.cue_width_dva));% saccade cue width converted to pixels
-info.cue_length_px = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, info.cue_length_dva)); % saccade cue length converted to pixels
+info.cue_width_dva = 0.15;   % Cue width (dva).
+info.cue_length_dva = 0.7;   % Cue length (dva).
 
-%% PLACEHOLDERS INFOS
+% Saccade cue dimensions converted to pixels.
+info.cue_width_px = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, info.cue_width_dva));
+info.cue_length_px = round(dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize, info.cue_length_dva));
 
-info.pholder_size_dva = 0.3;       % tamanho placeholders
-info.dist_pholder_y_perto_dva     = 1.415; %2;       % excent. dos pholders em relação ao centro do eixo y.
-info.dist_pholder_x_perto_dva     = 8-1.415; %6;        % excent. placeholder mais perto em relação ao eixo x
-info.dist_pholder_x_longe_dva     = 8+1.415; %10;       % excent. placeholder mais distante em relação ao eixo x
+%% Placeholder parameters
 
-info.pholder_size_px     = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.pholder_size_dva);
-info.dist_pholder_y_perto_px     = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_y_perto_dva);
-info.dist_pholder_x_perto_px     = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_x_perto_dva);
-info.dist_pholder_x_longe_px    = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_x_longe_dva);
+info.pholder_size_dva = 0.3;               % Placeholder size (dva).
+info.dist_pholder_y_perto_dva = 1.415;     % Vertical eccentricity relative to screen center.
+info.dist_pholder_x_perto_dva = 8-1.415;   % Horizontal eccentricity of the near placeholder.
+info.dist_pholder_x_longe_dva = 8+1.415;   % Horizontal eccentricity of the far placeholder.
 
-% define posição de apresentação dos estímulos
+% Convert placeholder dimensions and positions to pixels.
+info.pholder_size_px = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.pholder_size_dva);
+info.dist_pholder_y_perto_px = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_y_perto_dva);
+info.dist_pholder_x_perto_px = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_x_perto_dva);
+info.dist_pholder_x_longe_px = dva2pix(info.scr_dist_cm, info.scr_xsize_cm, info.scr_xsize,info.dist_pholder_x_longe_dva);
+
+% Define the stimulus presentation positions.
 y1 = info.scr_ycenter - info.dist_pholder_y_perto_px;
 y2 = info.scr_ycenter + info.dist_pholder_y_perto_px;
 
-x3  = info.scr_xcenter - info.dist_pholder_x_perto_px; % pholder perto esquerda
-x3a = info.scr_xcenter - info.dist_pholder_x_longe_px; % pholder distante esquerda
-x4  = info.scr_xcenter + info.dist_pholder_x_perto_px; % pholder perto direita
-x4a = info.scr_xcenter + info.dist_pholder_x_longe_px; % pholder distante direita
+x3  = info.scr_xcenter - info.dist_pholder_x_perto_px; % Near left placeholder
+x3a = info.scr_xcenter - info.dist_pholder_x_longe_px; % Far left placeholder
+x4  = info.scr_xcenter + info.dist_pholder_x_perto_px; % Near right placeholder
+x4a = info.scr_xcenter + info.dist_pholder_x_longe_px; % Far right placeholder
 
-info.pholdercoordL = [x3,  x3a, x3,  x3a; y2, y2, y1, y1];  % coordenadas pista lado esquerdo
-info.pholdercoordR = [x4,  x4a, x4,  x4a; y2, y2, y1, y1];  % coord pista lado direito
+% Placeholder coordinates for the left and right visual fields.
+info.pholdercoordL = [x3,  x3a, x3,  x3a; y2, y2, y1, y1];
+info.pholdercoordR = [x4,  x4a, x4,  x4a; y2, y2, y1, y1];
 
-%%
-% There are four conditions: saccade congruent (SC) Neutral-Nonsaccade (NE) and feature
-% congruent (FC) and incongruent (FI).
+%% Condition codes
 
-% 1 = VAL + FC
-% 2 = VAL + FI
-% 3 = INVAL + FC
-% 4 = INVAL + FI
+% 1 = Towards + High Prob
+% 2 = Towards + Low Prob
+% 3 = Away + High Prob
+% 4 = Away + Low Prob
 
-
-
-%        conditions 1:4    feature      targ side       catch trials
-%           see above      1 = CW       1 = left        0 = no catch
-%                          2 = CCW      2 = right        1 = catch
+% Matrix columns:
+% Column 1: Conditions 1-4
+% Column 2: Feature
+%           1 = Clockwise
+%           2 = Counterclockwise
+% Column 3: Target side
+%           1 = Left
+%           2 = Right
+% Column 4: Catch trial
+%           0 = No
+%           1 = Yes
 
 condition1 = [repelem(1,72) repelem(2,18) repelem(1,72)  repelem(2,18)]';
 condition2 = [repelem(3,72) repelem(4,18) repelem(3,72)  repelem(4,18)]';
 
-feature_type1 = repelem(1, 180)';
+feature_type1 = repelem(1,180)';
 
-target_side1 = repelem([1 2], 90)';
+target_side1 = repelem([1 2],90)';
 
-catch_trl1 = repmat([repelem(0,60) repelem(1,12) repelem(0,15)  repelem(1,3)]',2,1);
+catch_trl1 = repmat([repelem(0,60) repelem(1,12) repelem(0,15) repelem(1,3)]',2,1);
 
-matrix1 = repmat([condition1 feature_type1  target_side1  catch_trl1],2,1); 
+% Create the base trial matrix.
+matrix1 = repmat([condition1 feature_type1 target_side1 catch_trl1],2,1);
 
+% Replace valid conditions with invalid conditions in the second half.
 matrix1(181:end,1) = condition2;
 
+% Duplicate to create two feature sets.
 matrix1 = [matrix1; matrix1];
 
-matrix1(361:end,2) = 2; 
+% Assign feature type 2 to the second half.
+matrix1(361:end,2) = 2;
 
-
-
+% Counterbalance the feature condition across participants.
 if rem(sub.id_num,2) == 1
-    trl.feature_ses = [1 2;2 1];
+    trl.feature_ses = [1 2; 2 1];
 else
     trl.feature_ses = [2 1; 1 2];
 end
 
-% create matrix of trials for each session, as well as timings for cue and
-% target appearance and target orientation.
+% Create the trial matrix for each session, including 
+% feature condition, timing, and target orientation.
 
 for session = 1:2
 
+    % Assign the frequent feature for each half of the session.
     matrix1(1:360,2)   = trl.feature_ses(session,1);
     matrix1(361:720,2) = trl.feature_ses(session,2);
 
+    % Randomize trials separately for the two halves of the experiment.
+    matrix(1:360,:)   = Shuffle(matrix1(1:360,:),2);
+    matrix(361:720,:) = Shuffle(matrix1(361:720,:),2);
 
-    % Randomize trials separetly for saccade and neutral conditions.
-    matrix(1:360,:)   = Shuffle(matrix1(1:360,:),2);   % saccade 
-    %matrix(181:360,:) = Shuffle(matrix1(181:360,:),2); % neutral
-    matrix(361:720,:)   = Shuffle(matrix1(361:720,:),2);   % saccade 
-    %matrix(541:720,:) = Shuffle(matrix1(541:720,:),2); % neutral
-  
-    % Randomize blocks of trials in a given session. each block contains 30
-    % trials. If the number condition is 1 or 2, is a saccade block,
-    % whereas a number 3 or 4 is a neutral block (no saccade). 
+    % Randomize the order of 30-trial blocks within each half.
     blocks = [(1:30:720)' (30:30:720)'];
-    
+
     shuffled_blocks1 = Shuffle(blocks(1:12,:),2);
     shuffled_blocks2 = Shuffle(blocks(13:24,:),2);
-    shuffled_blocks = [shuffled_blocks1;shuffled_blocks2];
+    shuffled_blocks = [shuffled_blocks1; shuffled_blocks2];
 
     for m = 1:24
-
-        matrix2(blocks(m,1):blocks(m,2),:) = matrix(shuffled_blocks(m,1):shuffled_blocks(m,2),:);
-    
+        matrix2(blocks(m,1):blocks(m,2),:) = ...
+            matrix(shuffled_blocks(m,1):shuffled_blocks(m,2),:);
     end
  
-   mat_trng1 = matrix2(331:360,:);
-   mat_trng2 = matrix2(691:720,:);
-   mat_trng3 = Shuffle(matrix2(331:360,:),2);
-   mat_trng4 = Shuffle(matrix2(691:720,:),2);
+      % Extract the last block of each experimental half to create training trials.
+    mat_trng1 = matrix2(331:360,:);
+    mat_trng2 = matrix2(691:720,:);
 
+    % Create shuffled versions for the complementary training blocks.
+    mat_trng3 = Shuffle(matrix2(331:360,:),2);
+    mat_trng4 = Shuffle(matrix2(691:720,:),2);
 
-   mat_trng1(mat_trng1(:,1) == 3 ,1) = 1;
-   mat_trng1(mat_trng1(:,1) == 4 ,1) = 2;
+    % Convert away conditions into towards conditions for the first training block.
+    mat_trng1(mat_trng1(:,1) == 3 ,1) = 1;
+    mat_trng1(mat_trng1(:,1) == 4 ,1) = 2;
 
-   mat_trng2(mat_trng2(:,1) == 3 ,1) = 1;
-   mat_trng2(mat_trng2(:,1) == 4 ,1) = 2;
+    % Convert away conditions into towards conditions for the second training block.
+    mat_trng2(mat_trng2(:,1) == 3 ,1) = 1;
+    mat_trng2(mat_trng2(:,1) == 4 ,1) = 2;
 
-   mat_trng3(mat_trng3(:,1) == 1 ,1) = 3;
-   mat_trng3(mat_trng3(:,1) == 2 ,1) = 4;
+    % Convert towards conditions into away conditions for the complementary training block.
+    mat_trng3(mat_trng3(:,1) == 1 ,1) = 3;
+    mat_trng3(mat_trng3(:,1) == 2 ,1) = 4;
 
-   mat_trng4(mat_trng4(:,1) == 1 ,1) = 3;
-   mat_trng4(mat_trng4(:,1) == 2 ,1) = 4;
+    % Convert towards conditions into away conditions for the second complementary training block.
+    mat_trng4(mat_trng4(:,1) == 1 ,1) = 3;
+    mat_trng4(mat_trng4(:,1) == 2 ,1) = 4;
 
-
+    % Shuffle the two training sets.
     mat_trng11 = Shuffle([mat_trng1; mat_trng3],2);
     mat_trng22 = Shuffle([mat_trng2; mat_trng4],2);
 
-   info.matrix = [mat_trng11;         % Training
-                 matrix2(1:360,:);    % Experiment
-                 mat_trng22;          % Training
-                 matrix2(361:end,:)]; % Experiment
-   
-   % This fifth column represents training (ones) and no training trials (zeros)
-   info.matrix(:,5) = [repelem(1,60) repelem(0,360) repelem(1,60) repelem(0,360)]';
+    % Assemble the complete session matrix:
+    % Training -> Experiment -> Training -> Experiment.
+    info.matrix = [mat_trng11;         % Training
+                   matrix2(1:360,:);   % Experimental trials
+                   mat_trng22;         % Training
+                   matrix2(361:end,:)];% Experimental trials
 
-    %%
-    % target orientation for each trial when the most probable orientation
-    % is clockwise (315)
-     trl.targ_ori((info.matrix(:,1) == 1 & info.matrix(:,2) == 1),1) = 315;      % clockwise orientation
-     trl.targ_ori((info.matrix(:,1) == 2 & info.matrix(:,2) == 1),1) = 45;      % counterclockwise orientation
-     trl.targ_ori((info.matrix(:,1) == 3 & info.matrix(:,2) == 1),1) = 315;      % clockwise orientation
-     trl.targ_ori((info.matrix(:,1) == 4 & info.matrix(:,2) == 1),1) = 45;      % counterclockwise orientation
-  
-    % target orientation for each trial when the most probable orientation
-    % is counterclockwise (45)
-     trl.targ_ori((info.matrix(:,1) == 1 & info.matrix(:,2) == 2),1) = 45;    
-     trl.targ_ori((info.matrix(:,1) == 2 & info.matrix(:,2) == 2),1) = 315;     
-     trl.targ_ori((info.matrix(:,1) == 3 & info.matrix(:,2) == 2),1) = 45;      
-     trl.targ_ori((info.matrix(:,1) == 4 & info.matrix(:,2) == 2),1) = 315;      
+    % Fifth column:
+    % 1 = Training trial
+    % 0 = Experimental trial
+    info.matrix(:,5) = [repelem(1,60) repelem(0,360) repelem(1,60) repelem(0,360)]';
 
+    %% Target orientation assignment
 
-    % ones mark the beginning of a block of trials.
+    % Target orientations when the high-probability feature is clockwise (315°).
+
+    trl.targ_ori((info.matrix(:,1) == 1 & info.matrix(:,2) == 1),1) = 315; % Clockwise
+    trl.targ_ori((info.matrix(:,1) == 2 & info.matrix(:,2) == 1),1) = 45;  % Counterclockwise
+    trl.targ_ori((info.matrix(:,1) == 3 & info.matrix(:,2) == 1),1) = 315; % Clockwise
+    trl.targ_ori((info.matrix(:,1) == 4 & info.matrix(:,2) == 1),1) = 45;  % Counterclockwise
+
+    % Target orientations when the high-probability feature is counterclockwise (45°).
+
+    trl.targ_ori((info.matrix(:,1) == 1 & info.matrix(:,2) == 2),1) = 45;
+    trl.targ_ori((info.matrix(:,1) == 2 & info.matrix(:,2) == 2),1) = 315;
+    trl.targ_ori((info.matrix(:,1) == 3 & info.matrix(:,2) == 2),1) = 45;
+    trl.targ_ori((info.matrix(:,1) == 4 & info.matrix(:,2) == 2),1) = 315;
+
+    % Mark the first trial of each block.
     trl.onset_blocks = repmat([1 repelem(0,29)],1,28)';
 
-    % ones mark the end of a block of trials.
+    % Mark the last trial of each block.
     trl.offset_blocks = repmat([repelem(0,29) 1],1,28)';
-    % twos mark the resting block
+
+    % Mark the beginning of the resting phase.
     trl.offset_blocks(60:60:840,1) = 2;
 
-    % defines trial onset and offset. the onsets are randomized to occur
-    % between 500 (60 frames) - 900 (109 frames) ms after fixation onset to avoid temporal
-    % expectation.
+    % Define cue onset.
+    % Cue onset is randomized between 500 and 900 ms after fixation onset
+    % to reduce temporal expectation.
     trl.cue_on = randi([60 109],1,840)';
-    trl.cue_off = trl.cue_on + 9; % cue offset after 75 ms
 
-    trl.targ_on = trl.cue_on + 18; % presents the target 150ms after cue onset (SOA)
-    trl.targ_off = trl.targ_on + 5; % it will stay on the screen for 40ms
+    % Cue duration (75 ms).
+    trl.cue_off = trl.cue_on + 9;
 
-    % White Noise timing based on target offset
-    trl.wnoise_on  = trl.targ_off + 2;   % 16ms ms SOA wnoise-target
-    trl.wnoise_off = trl.wnoise_on + 12; % 100 ms duration
+    % Target onset (150 ms SOA relative to cue onset).
+    trl.targ_on = trl.cue_on + 18;
 
+    % Target duration (~41 ms).
+    trl.targ_off = trl.targ_on + 5;
+
+    % White noise mask timing.
+    trl.wnoise_on  = trl.targ_off + 2;    % 16 ms SOA after target offset
+    trl.wnoise_off = trl.wnoise_on + 12;  % 100 ms duration
+
+    % Counter for repeated blocks.
     trl.repeated_blk = zeros(1,2);
 
-    %% Create data directories
+    %% Create participant data directories
 
     if ~exist(sprintf('%s/Data/S%d/Task/', pc_path, sub.id_num), 'dir')
         mkdir(sprintf('%s/Data/S%d/Task/', pc_path, sub.id_num))
     end
+
     if ~exist(sprintf('%s/Data/S%d/Eye/', pc_path, sub.id_num), 'dir')
         mkdir(sprintf('%s/Data/S%d/Eye/', pc_path, sub.id_num))
     end
 
+    %% Save session files
 
-    %%
-    %%% Save files
+    % Save trial information and experiment parameters.
+    sub.trlinfo_fname = sprintf('ses_%d_trlinfo_sub_%d_%s', ...
+        session, sub.id_num, datestr(now,'yymmdd-HHMM')); %#ok<*TNOW1,*DATST>
 
-    % Save trials information
-    sub.trlinfo_fname = sprintf('ses_%d_trlinfo_sub_%d_%s',session, sub.id_num, datestr(now,'yymmdd-HHMM')); %#ok<*TNOW1,*DATST>
-    save(fullfile(sprintf('%s/Data/S%d/%s', pc_path, sub.id_num), [sub.trlinfo_fname, '.mat']), 'info', 'trl', 'sub','gabor','mask', '-v7.3');
+    save(fullfile(sprintf('%s/Data/S%d/%s', pc_path, sub.id_num), ...
+        [sub.trlinfo_fname, '.mat']), ...
+        'info', 'trl', 'sub', 'gabor', 'mask', '-v7.3');
 
-    fprintf('Sessão_%d...',session)
-    fprintf('\nFeito!\n')
+    fprintf('Session_%d...',session)
+    fprintf('\nDone!\n')
 
 end
-
