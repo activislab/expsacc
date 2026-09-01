@@ -178,7 +178,7 @@ try
 
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % with the eyetracker, checks if and when fixation position 
+            % with the eyetracker, check if and when fixation position 
             % moved from the screen center
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
