@@ -38,7 +38,7 @@ Additional experiment codes(PSA\_FBE\_control\_exp):
 "Runner\_control" loads the created dataset and calls the On\_Screen function.
 The dva2pix, gabor and mask files used here are the same as those used in the main experiment.
 
-========================================================================================================
+==========================================================================
 
 Perceptual main analysis(Figure 2 in the paper):
 
@@ -64,7 +64,7 @@ Oculomotor main analysis(Figure 4A-C in the paper):
 Compute and plot saccade latency results using "script\_saccade\_latency\_plots"
 To plot saccade latency results, you'll also need the bagplot function mentioned above.
 
-========================================================================================================
+==========================================================================
 
 \-----------------
 
