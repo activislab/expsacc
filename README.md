@@ -14,7 +14,9 @@ Eyelink (SR Research). Eyelink codes were removed from the scripts below.
 
 
 \-------------------------------
+
 Main experiment codes(PSA\_FBE):
+
 \-------------------------------
 
 "Infos\_FBE" creates all variables needed to run the experiment for each subject and session.
@@ -25,8 +27,10 @@ Main experiment codes(PSA\_FBE):
 of visual angle (dva) values to pixels.
 
 
+\-------------------------------------------------
 
 Additional experiment codes(PSA\_FBE\_control\_exp):
+
 \-------------------------------------------------
 "Infos\_FBE\_control" creates all variables needed to run the experiment for each subject and session.
 "On\_Screen\_control" function runs the trials on screen.
@@ -36,6 +40,7 @@ The dva2pix, gabor and mask files used here are the same as those used in the ma
 ========================================================================================================
 
 Perceptual main analysis(Figure 2 in the paper):
+
 \-----------------------------------------------
 Compute and plot visual sensitivity (d') results using "script\_dprime\_analysis".
 d' was computed using the m-alternative detection choice model developed by:
@@ -48,14 +53,19 @@ d' was computed using the m-alternative detection choice model developed by:
 *To plot d' results, you'll need the bagplot function. We implemented a custom version of the original code 
 (https://github.com/mwgeurts/libra/tree/master), which can be found in the "libra-master" folder.*
 
+\----------------------------------------------------
+
 Oculomotor main analysis(Figure 4A-C in the paper):
+
 \----------------------------------------------------
 Compute and plot saccade latency results using "script\_saccade\_latency\_plots"
 To plot saccade latency results, you'll also need the bagplot function mentioned above.
 
 ========================================================================================================
+\-----------------
 
 Preprocessed data
+
 \-----------------
 To run the main perceptual and oculomotor analysis above, you'll need to download participants' preprocessed data available at https://osf.io/rj8z7. 
 
