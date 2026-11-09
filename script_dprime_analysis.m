@@ -22,6 +22,8 @@ addpath(genpath(data_path));
 data_path2 = sprintf('Insert_folder_location_here/Data_and_analysis_scripts/mADC-Model-master/');
 addpath(genpath(data_path2));
 
+
+
 for subject = 1:19
 
 
@@ -31,66 +33,64 @@ for subject = 1:19
     load(file.name);
 
 
-    correct_report = (Data_Table{:,"Ori_report"} == Data_Table{:,"Target_orientation"}) & (Data_Table{:,"Ori_report"} ~= 0);
 
-    % Sum of correct target discriminations for each condition
-    for cond_hit = 1:4
-        hit(cond_hit) = sum(Data_Table{:,"Condition"} == cond_hit & Data_Table{:,"Hit"} == 1 & ...
-            Data_Table{:,"Catch_trial"} == 0 & Data_Table{:,"perceptual_analysis"} == 1 & ...
-            correct_report(:,1) == 1);
+    condition = Data_Table{:,"Condition"};
+    catch_trial = Data_Table{:,"Catch_trial"} == 1;
+    valid_trial = Data_Table{:,"perceptual_analysis"} == 1;
+
+    ori_report = Data_Table{:,"Ori_report"};
+    target_ori = Data_Table{:,"Target_orientation"};
+
+    towards = condition == 1 | condition == 2;
+    away    = condition == 3 | condition == 4;
+
+    high_prob = condition == 1 | condition == 3;
+    low_prob  = condition == 2 | condition == 4;
+
+    % Orientation reported on each trial:
+    % on high-probability trials Target_orientation denotes the high feature;
+    % on low-probability trials it denotes the low feature.
+    same_orientation = ori_report == target_ori;
+    other_orientation = ori_report ~= target_ori & ori_report ~= 0;
+
+    response_high = (high_prob & same_orientation) | (low_prob  & other_orientation);
+
+    response_low = (high_prob & other_orientation) | (low_prob  & same_orientation);
+
+    % Correct target discriminations and misidentifications
+    correct_report = same_orientation & ori_report ~= 0;
+
+    for cond = 1:4
+        hit(cond) = sum(condition == cond & Data_Table{:,"Hit"} == 1 & ~catch_trial & valid_trial & correct_report);
+        misid(cond) = sum(condition == cond & Data_Table{:,"Hit"} == 1 & ~catch_trial & valid_trial & ~correct_report);
+        miss(cond) = sum(condition == cond & Data_Table{:,"Miss"} == 1 & ~catch_trial & valid_trial);
+        cr(cond) = sum(condition == cond & Data_Table{:,"Correct_rejection"} == 1 & catch_trial & valid_trial);
     end
 
+    % False alarms, separated by reported feature.
+    fa_high_towards = sum(catch_trial & towards & valid_trial & Data_Table{:,"False_alarm"} == 1 & response_high);
+    fa_low_towards = sum(catch_trial & towards & valid_trial & Data_Table{:,"False_alarm"} == 1 & response_low);
+    fa_high_away = sum(catch_trial & away & valid_trial & Data_Table{:,"False_alarm"} == 1 & response_high);
+    fa_low_away = sum(catch_trial & away & valid_trial & Data_Table{:,"False_alarm"} == 1 & response_low);
 
-    % Sum of misidentifications for each condition.
-    % Misidentification: Incorrect target orientation report when correctly
-    % reporting target presence.
-    for cond_misid = 1:4
-        misid(cond_misid) = sum(Data_Table{:,"Condition"} == cond_misid & Data_Table{:,"Hit"} == 1 & ...
-            Data_Table{:,"Catch_trial"} == 0 & Data_Table{:,"perceptual_analysis"} == 1 & ...
-            correct_report(:,1) == 0);
-    end
-
-
-    % Sum of False alarms for each condition
-    for cond_fa = 1:4
-        fa(cond_fa) = sum(Data_Table{:,"Condition"} == cond_fa & Data_Table{:,"False_alarm"} == 1 & ...
-            Data_Table{:,"Catch_trial"} == 1 & Data_Table{:,"perceptual_analysis"} == 1);
-    end
-    fa_towards = sum(fa(1:2));
-    fa_away = sum(fa(3:4));
-
-
-    % Sum of Correct Rejection for each condition
-    for cond_cr = 1:4
-        cr(cond_cr) = sum(Data_Table{:,"Condition"} == cond_cr & Data_Table{:,"Correct_rejection"} == 1 & ...
-            Data_Table{:,"Catch_trial"} == 1 & Data_Table{:,"perceptual_analysis"} == 1);
-    end
     cr_towards = sum(cr(1:2));
     cr_away = sum(cr(3:4));
 
 
-    % Sum of misses for each condition
-    for cond_miss = 1:4
-        miss(cond_miss) = sum(Data_Table{:,"Condition"} == cond_miss & Data_Table{:,"Miss"} == 1 & ...
-            Data_Table{:,"Catch_trial"} == 0 & Data_Table{:,"perceptual_analysis"} == 1);
-    end
+    % Rows = presented high/low feature; columns = report high/low/absent.
+    Matrix_towards = [hit(1)          misid(1)          miss(1)
+                      misid(2)        hit(2)            miss(2)
+                      fa_high_towards fa_low_towards     cr_towards];
 
+    Matrix_away = [hit(3)       misid(3)       miss(3)
+                   misid(4)     hit(4)         miss(4)
+                   fa_high_away fa_low_away    cr_away];
 
+    [theta_est_towards, ~, ~, ~, ~] = mADC_model_fit(Matrix_towards);
+    [theta_est_away, ~, ~, ~, ~] = mADC_model_fit(Matrix_away);
 
-    Matrix_towards = [hit(1)       misid(2)     miss(1)
-        misid(1)     hit(2)       miss(2)
-        fa_towards   fa_towards   cr_towards];
+    dprime(subject,:) = [theta_est_towards(1,1:2), theta_est_away(1,1:2)];
 
-    [theta_est_towards,  ~,  ~,  ~, ~] = mADC_model_fit(Matrix_towards);
-
-
-    Matrix_away = [hit(3)       misid(4)     miss(3)
-        misid(3)     hit(4)       miss(4)
-        fa_away      fa_away      cr_away];
-
-    [theta_est_away,  ~,  ~,  ~, ~] = mADC_model_fit(Matrix_away);
-
-    dprime(subject,:) = [theta_est_towards(1,1:2) theta_est_away(1,1:2)];
 
 end
 
@@ -110,7 +110,7 @@ figure
 subplot(2,4,[3 4])
 hold on;
 
-data = dprime([1:9 11:17 19],:);
+data = dprime([1:9 12:17 19],:);
 
 % Set parameters (keep your original parameters)
 boxWidth = 0.5;
@@ -306,10 +306,7 @@ xlabel('Saccade Direction','FontWeight','bold');
 % Improve appearance
 set(gca, 'TickDir', 'out', 'Box', 'off', 'FontSize', 8);
 
-text(mean(xPos), 3.3, 'p < .001', ...
-    'FontSize', 8, ...
-    'HorizontalAlignment', 'center', ...
-    'VerticalAlignment', 'bottom');
+
 hold off;
 
 %--------------------------------------------------------------------------
@@ -449,10 +446,6 @@ xlabel('Feature Probability ','FontWeight','bold');
 % Improve appearance
 set(gca, 'TickDir', 'out', 'Box', 'off', 'FontSize', 8);
 
-text(mean(xPos), 3.3, 'p < .001', ...
-    'FontSize', 8, ...
-    'HorizontalAlignment', 'center', ...
-    'VerticalAlignment', 'bottom');
 
 hold off;
 

@@ -11,9 +11,11 @@
 SRT2 = NaN(19,4);
 
 
-data_path = sprintf('Insert_folder_location_here/Data_and_analysis_scripts/Data_participants/');
-addpath(genpath(data_path));
+% data_path = sprintf('Insert_folder_location_here/Data_and_analysis_scripts/Data_participants/');
+% addpath(genpath(data_path));
 
+data_path = sprintf('C:/Users/luanb/Desktop/Data_and_analysis_scripts/Data_participants');
+addpath(genpath(data_path));
 
 
 for subject = 1:19
@@ -39,7 +41,7 @@ data_path3 = sprintf('Insert_folder_location_here/Data_and_analysis_scripts/libr
 addpath(genpath(data_path3));
 
 
- SRT_subjects = [1:9 11:17 19];
+ SRT_subjects = [1:9 12:17 19];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% BAGPLOT COMPARING LATENCY TOWARDS VS AWAY
