@@ -14,9 +14,6 @@ SRT2 = NaN(19,4);
 % data_path = sprintf('Insert_folder_location_here/Data_and_analysis_scripts/Data_participants/');
 % addpath(genpath(data_path));
 
-data_path = sprintf('C:/Users/luanb/Desktop/Data_and_analysis_scripts/Data_participants');
-addpath(genpath(data_path));
-
 
 for subject = 1:19
 
